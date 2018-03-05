@@ -54,32 +54,32 @@
   </div>
 
   <div id="work-space" class="content container" ng-hide="(transactionLists.length === 0) && (minWidth < 300) || turnOn">
-    <div class="card radius-small bg-white shadow padding-wrap margin-wrap" ng-repeat="group in transactionLists">
+    <div class="card radius-small bg-white shadow padding-wrap margin-wrap" v-for="group in transactionLists">
       <ul class="table-view clearfix" ng-model="displayDate">
         <li class="table-view-cell padding-top-bottom-small border-bottom clearfix">
             <span class="date-time pull-left">
-              <span class="date text-extra pull-left">28</span>
+              <span class="date text-extra pull-left">{{dateTimeFilter(group.displayDate,"DD")}}</span>
               <span class="pull-left padding-left-small">
-                <span class="day block text-small">Wednesday</span>
-                <span class="month-year text-small text-dark-trans">Feb. 2018</span>
+                <span class="day block text-small">{{dateTimeFilter(group.displayDate,"dddd")}}</span>
+                <span class="month-year text-small text-dark-trans">{{dateTimeFilter(group.displayDate,"MMM. YYYY")}}</span>
               </span>
             </span>
-          <strong class="amount text-large pull-right bigAmount text-expense" ng-class="(group.totalAmount | checkNegativeNumber) === 1 ? 'text-income' : 'text-expense'">   
-            -355,000.00 ₫
+          <strong class="amount text-large pull-right bigAmount text-expense" :class="(group.totalAmount | checkNegativeNumber) === 1 ? 'text-income' : 'text-expense'">   
+            {{group.totalAmount | amountDisplayFilter(group.totalAmount,group.currency,(group.totalAmount | checkNegativeNumber))}}
           </strong>
         </li>
-        <li class="detail table-view-cell padding-wrap margin-wrap-minus change-bg-gray clearfix" ng-repeat="tran in group.trans">
+        <li class="detail table-view-cell padding-wrap margin-wrap-minus change-bg-gray clearfix" v-for="tran in group.trans">
           <span class="pull-left">
             <span class="inline-block align-top">
-              <img class="img-base" err-src="/static/img/ic_category_foodndrink.png" src="//static.moneylover.me/img/icon/ic_category_foodndrink.png">
+              <img class="img-base" err-src="/static/img/ic_category_foodndrink.png" :src=tran.category.icon|getIconLinkFilter>
             </span>
             <span class="pull-right">
-              <span class="amount block smallAmount text-expense" ng-class="tran.category.type == 1 ? 'text-expense' : 'text-income'">355,000.00 ₫</span>
+              <span class="amount block smallAmount text-expense" ng-class="tran.category.type == 1 ? 'text-expense' : 'text-income'">{{tran.amount | amountDisplayFilter(tran.amount,tran.currency,tran.category.type)}}</span>
               <!-- <span class="note-amount block text-dark-trans">0</span> -->
             </span>
             <span class="inline-block padding-left-large">
-              <span class="name block">Ăn uống</span>
-              <span class="note text-small text-dark-trans block make-text-fit"></span>
+              <span class="name block">{{tran.category.name}}</span>
+              <span class="note text-small text-dark-trans block make-text-fit">{{tran.note}}</span>
             </span>
           </span>
         </li>
@@ -152,6 +152,28 @@ export default {
       });
 
       this.walletBalance = totalBalance;
+    },
+    getSymbol:  function (callback) {
+                  $http.get('currency.json')
+                      .success(function (data, status) {
+                          if (status === 200) {
+
+                              this.currencyList = [];
+
+                              data.data.forEach((value) => {
+                                  this.currencyList.push(value);
+                              });
+                              callback();
+                          } else {
+                              callback('Get currency symbol failed');
+                          }
+                      })
+                      .error(function () {
+                          callback('Fail on get currency symbol.');
+                      });
+                },
+    dateTimeFilter: function(input, patern){
+      return this.$moment(input).format(patern);
     }
   },
   data () {
@@ -162,12 +184,40 @@ export default {
       walletBalance: 0
     }
   },
+  filters: {
+    getIconLinkFilter: function(imgName) {
+      if(!imgName) return '';
+      imgName = imgName.replace(/.png/i, '').replace(/icon\//i, '');
+
+      if (imgName.indexOf("provider") != -1) {
+          var number = imgName.replace(/\/provider\//i, '');
+          return ('https://d3938q3vi00zd9.cloudfront.net/provider_'+number+'-logo.png');
+      }
+
+      return ('//static.moneylover.me' + '/img/icon/' + imgName + '.png');
+    },
+    checkNegativeNumber: function(amount) {
+      if (amount < 0) {
+              return 2;
+          } else {
+              return 1;
+          }
+    },
+    amountDisplayFilter: function (amount, currency, type){
+      if (!currency || !amount) return;
+
+      var formatCurrency = currency.t === 0 ? '%s %v' : '%v %s';
+
+      return accounting.formatMoney(amount, { symbol: currency.s, format: formatCurrency });
+    }
+  },
   created() {
     this.$http.jsonp('https://api.moneylover.me/wallet/7b259e3416394275ac4c87142f79ba7b/transaction/all?callback=JSON_CALLBACK')
       .then(res => {
         let transactions = JSON.parse(JSON.parse(res.data));
         this.getTransactionResult(transactions.data.transactions)
-        console.log(this.transactionLists)
+        // console.log(transactions)
+        // console.log(this.transactionLists)
       },err => console.log(err))
   }
 }
