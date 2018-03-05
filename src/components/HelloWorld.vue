@@ -129,7 +129,7 @@ export default {
       });
       var temp,
       stopForEach = false;
-      
+
       cList.forEach( value => {
         if (!stopForEach) {
             if (!temp) {
@@ -143,13 +143,23 @@ export default {
         }
       })
       this.transactionLists = list;
+      this.calBalance();
+    },
+    calBalance: function() {
+      var totalBalance = 0;
+      this.transactionLists.forEach(value => {
+          totalBalance += value.totalAmount;
+      });
+
+      this.walletBalance = totalBalance;
     }
   },
   data () {
     return {
       currencyList: [],
       transactionLists: [],
-      moreThanOneCurrency: false
+      moreThanOneCurrency: false,
+      walletBalance: 0
     }
   },
   created() {
