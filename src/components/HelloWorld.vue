@@ -102,20 +102,62 @@ export default {
     listTransaction: this.getListTransaction
   },
   methods: {
-    getListTransaction: function() {
+    getTransactionResult: function(data) {
+      var tempDate,
+          list = [],
+          cList = [],
+          indexList = -1;
+      data.forEach(value => {
+        if (!value.category) return;
+          var transactionDate = this.$moment(value.displayDate).format('YYYY-MM-DD'),
+              currId = (value.account.currency_id - 1),
+              curr = this.currencyList[currId];
+
+          if (!tempDate || transactionDate!==tempDate) {
+              list.push({displayDate: transactionDate, trans: [], totalAmount: 0, currency: curr });
+              cList.push(currId);
+              tempDate = transactionDate;
+              indexList += 1;
+          }
+
+          var amount = value.amount;
+
+          if (value.category.type === 2) amount *= -1;
+          list[indexList].totalAmount += amount;
+          value.currency = this.currencyList[currId];
+          list[indexList].trans.push(value);
+      });
+      var temp,
+      stopForEach = false;
       
+      cList.forEach( value => {
+        if (!stopForEach) {
+            if (!temp) {
+                temp = value;
+            } else {
+                if (temp === value) {
+                    this.moreThanOneCurrency = true;
+                    stopForEach = true;
+                }
+            }
+        }
+      })
+      this.transactionLists = list;
     }
   },
   data () {
     return {
-      
+      currencyList: [],
+      transactionLists: [],
+      moreThanOneCurrency: false
     }
   },
   created() {
     this.$http.jsonp('https://api.moneylover.me/wallet/7b259e3416394275ac4c87142f79ba7b/transaction/all?callback=JSON_CALLBACK')
       .then(res => {
         let transactions = JSON.parse(JSON.parse(res.data));
-        console.log(transactions.data.transactions)
+        this.getTransactionResult(transactions.data.transactions)
+        console.log(this.transactionLists)
       },err => console.log(err))
   }
 }
