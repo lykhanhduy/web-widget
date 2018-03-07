@@ -3,6 +3,7 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
+import Vuex from 'vuex'
 import VueResource from 'vue-resource'
 import index from './store/index'
 import moment from "moment";
